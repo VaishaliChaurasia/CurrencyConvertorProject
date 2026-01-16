@@ -1,66 +1,70 @@
-// Updated base URL
-const BASE_URL = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies";
+const BASE_URL =
+  "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies";
 
-const dropdowns = document.querySelectorAll(".dropdown select");
-const btn = document.querySelector("form button");
-const fromCurr = document.querySelector(".from select");
-const toCurr = document.querySelector(".to select");
-const msg = document.querySelector(".msg");
+const fromSelect = document.querySelector("select[name='from']");
+const toSelect = document.querySelector("select[name='to']");
+const amountInput = document.querySelector(".amount");
+const result = document.querySelector(".result");
+const btn = document.querySelector("button");
+const swap = document.querySelector(".swap");
 
-for (let select of dropdowns) {
-  for (currCode in countryList) {
-    let newOption = document.createElement("option");
-    newOption.innerText = currCode;
-    newOption.value = currCode;
-    if (select.name === "from" && currCode === "USD") {
-      newOption.selected = "selected";
-    } else if (select.name === "to" && currCode === "INR") {
-      newOption.selected = "selected";
-    }
-    select.append(newOption);
+function loadCurrencies() {
+  for (let curr in countryList) {
+    let opt1 = document.createElement("option");
+    let opt2 = document.createElement("option");
+
+    opt1.value = opt2.value = curr;
+    opt1.innerText = opt2.innerText = curr;
+
+    fromSelect.append(opt1);
+    toSelect.append(opt2);
   }
 
-  select.addEventListener("change", (evt) => {
-    updateFlag(evt.target);
-  });
+  fromSelect.value = "INR";
+  toSelect.value = "USD";
 }
 
-const updateFlag = (element) => {
-  let currCode = element.value;
-  let countryCode = countryList[currCode];
-  let newSrc = `https://flagsapi.com/${countryCode}/flat/64.png`;
-  let img = element.parentElement.querySelector("img");
-  img.src = newSrc;
-};
+function updateFlag(select) {
+  const countryCode = countryList[select.value];
+  const img = select.parentElement.querySelector("img");
+  img.src = `https://flagsapi.com/${countryCode}/flat/64.png`;
+}
 
+async function convert() {
+  let amount = amountInput.value || 1;
 
+  const URL = `${BASE_URL}/${fromSelect.value.toLowerCase()}.json`;
+  const response = await fetch(URL);
+  const data = await response.json();
 
-const updateExchangeRate = async () => {
-  let amount = document.querySelector(".amount input");
-  let amtVal = amount.value;
-  if (amtVal === "" || amtVal < 1) {
-    amtVal = 1;
-    amount.value = "1";
-  }
-  
-  // Updated URL structure
-  const URL = `${BASE_URL}/${fromCurr.value.toLowerCase()}.json`;
-  
-  let response = await fetch(URL);
-  let data = await response.json();
-  let rate = data[fromCurr.value.toLowerCase()][toCurr.value.toLowerCase()]; 
-  
-  let finalAmount = amtVal * rate;
-  msg.innerText = `${amtVal} ${fromCurr.value} = ${finalAmount} ${toCurr.value}`;
-};
+  const rate = data[fromSelect.value.toLowerCase()][toSelect.value.toLowerCase()];
+  const finalAmount = (amount * rate).toFixed(6);
 
+  result.innerText = `${amount} ${fromSelect.value} = ${finalAmount} ${toSelect.value}`;
+}
 
-btn.addEventListener("click", (evt) => {
-  evt.preventDefault();
-  updateExchangeRate();
+swap.addEventListener("click", () => {
+  [fromSelect.value, toSelect.value] = [toSelect.value, fromSelect.value];
+  updateFlag(fromSelect);
+  updateFlag(toSelect);
+  convert();
 });
+
+fromSelect.addEventListener("change", () => {
+  updateFlag(fromSelect);
+  convert();
+});
+
+toSelect.addEventListener("change", () => {
+  updateFlag(toSelect);
+  convert();
+});
+
+btn.addEventListener("click", convert);
 
 window.addEventListener("load", () => {
-  updateExchangeRate();
+  loadCurrencies();
+  updateFlag(fromSelect);
+  updateFlag(toSelect);
+  convert();
 });
-
